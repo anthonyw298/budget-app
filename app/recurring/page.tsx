@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 import Nav from '@/components/Nav'
 import PageTransition from '@/components/PageTransition'
 import CategoryIcon from '@/components/CategoryIcon'
@@ -9,7 +10,6 @@ import { CATEGORIES } from '@/lib/categories'
 import { formatCurrency } from '@/lib/utils'
 import { getRecurring, addRecurring, deleteRecurring, type Recurring } from '@/lib/store'
 import { Plus, Trash2, RefreshCw, CheckCircle2, ChevronLeft } from 'lucide-react'
-import { useRouter } from 'next/navigation'
 
 export default function RecurringPage() {
   const router = useRouter()
@@ -28,105 +28,84 @@ export default function RecurringPage() {
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!amount || !category) { setFormError('Amount and category required.'); return }
+    if (!amount || !category) { setFormError('Required'); return }
     addRecurring({ amount: parseFloat(amount), category, note, frequency, next_due: nextDue, active: true })
     setSuccess(true)
     setTimeout(() => { setShowForm(false); setSuccess(false); setAmount(''); setCategory(''); setNote(''); refresh() }, 900)
   }
 
-  const handleDelete = (id: string) => { deleteRecurring(id); refresh() }
-
   return (
     <PageTransition>
-      <div className="min-h-screen pb-28" style={{ background: 'var(--app-bg)' }}>
+      <div className="min-h-screen pb-28 px-5 pt-14">
 
-        {/* Header */}
-        <div className="px-5 pt-14 pb-5" style={{ background: 'linear-gradient(145deg, #0f0c29 0%, #302b63 55%, #24243e 100%)' }}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button onClick={() => router.back()} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center tap">
-                <ChevronLeft size={16} className="text-white/70" />
-              </button>
-              <h1 className="text-xl font-bold text-white">Recurring</h1>
-            </div>
-            <button onClick={() => setShowForm(!showForm)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/10 border border-white/10 text-white text-sm font-semibold tap"
-            >
-              <Plus size={15} /> Add
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.back()} className="w-8 h-8 rounded-full flex items-center justify-center tap" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+              <ChevronLeft size={16} style={{ color: 'var(--text-2)' }} />
             </button>
+            <h1 className="text-xl font-bold" style={{ color: 'var(--text-1)' }}>Recurring</h1>
           </div>
-          <div className="h-5 bg-[var(--app-bg)] rounded-t-[20px] mt-4 -mx-5" />
+          <button onClick={() => setShowForm(!showForm)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold tap"
+            style={{ background: 'var(--accent)', color: '#fff' }}
+          ><Plus size={15} /> Add</button>
         </div>
 
-        {/* Add form */}
         <AnimatePresence>
           {showForm && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }} className="overflow-hidden px-5 mb-4"
-            >
-              <form onSubmit={handleAdd} className="bg-white rounded-3xl card-shadow p-5 flex flex-col gap-4">
-                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">New Recurring</h3>
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden mb-4">
+              <form onSubmit={handleAdd} className="card p-5 flex flex-col gap-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-3)' }}>New Recurring</h3>
 
-                <div>
-                  <label className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Amount</label>
-                  <div className="flex items-baseline gap-1 mt-2">
-                    <span className="text-xl font-bold text-gray-300">$</span>
-                    <input type="number" inputMode="decimal" step="0.01" value={amount}
-                      onChange={e => setAmount(e.target.value)} placeholder="0.00"
-                      className="flex-1 text-2xl font-bold text-gray-900 outline-none bg-transparent placeholder:text-gray-200"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-3 block">Category</label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {CATEGORIES.map(cat => (
-                      <button key={cat.id} type="button" onClick={() => setCategory(cat.id)}
-                        className={`flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all tap ${category === cat.id ? 'ring-2 ring-indigo-500 ring-offset-1' : 'bg-gray-50'}`}
-                        style={category === cat.id ? { backgroundColor: cat.bg } : {}}
-                      >
-                        <CategoryIcon id={cat.id} size="sm" />
-                        <span className="text-[9px] text-gray-600 text-center leading-tight font-medium">{cat.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Note</label>
-                  <input type="text" value={note} onChange={e => setNote(e.target.value)}
-                    placeholder="e.g. Spotify, Rent..."
-                    className="w-full mt-2 text-gray-800 outline-none bg-transparent border-b border-gray-100 pb-1 placeholder:text-gray-300 font-medium"
+                <div className="flex items-baseline gap-1">
+                  <span className="text-xl font-bold" style={{ color: 'var(--text-3)' }}>$</span>
+                  <input type="number" inputMode="decimal" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00"
+                    className="flex-1 text-2xl font-extrabold outline-none bg-transparent placeholder:opacity-20"
+                    style={{ color: 'var(--text-1)' }}
                   />
                 </div>
 
+                <div className="grid grid-cols-4 gap-2">
+                  {CATEGORIES.map(cat => (
+                    <button key={cat.id} type="button" onClick={() => setCategory(cat.id)}
+                      className={`flex flex-col items-center gap-1 p-2 rounded-2xl tap ${category === cat.id ? 'ring-2 ring-offset-2 ring-offset-[#1a1a24]' : ''}`}
+                      style={{ background: category === cat.id ? cat.color + '20' : 'var(--surface-2)', ...(category === cat.id ? { ringColor: cat.color } : {}) }}
+                    >
+                      <CategoryIcon id={cat.id} size="sm" />
+                      <span className="text-[8px] font-medium" style={{ color: 'var(--text-2)' }}>{cat.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. Spotify, Rent..."
+                  className="outline-none bg-transparent font-medium placeholder:opacity-20" style={{ color: 'var(--text-1)', borderBottom: '1px solid var(--border)', paddingBottom: 4 }}
+                />
+
                 <div className="flex gap-3">
                   <div className="flex-1">
-                    <label className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Frequency</label>
-                    <div className="flex gap-2 mt-2">
+                    <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-3)' }}>Frequency</p>
+                    <div className="flex gap-2">
                       {(['monthly', 'weekly'] as const).map(f => (
                         <button key={f} type="button" onClick={() => setFrequency(f)}
-                          className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all tap ${frequency === f ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'}`}
-                        >
-                          {f.charAt(0).toUpperCase() + f.slice(1)}
-                        </button>
+                          className="flex-1 py-2 rounded-xl text-xs font-semibold tap"
+                          style={frequency === f ? { background: 'var(--accent)', color: '#fff' } : { background: 'var(--surface-2)', color: 'var(--text-3)' }}
+                        >{f.charAt(0).toUpperCase() + f.slice(1)}</button>
                       ))}
                     </div>
                   </div>
                   <div className="flex-1">
-                    <label className="text-xs text-gray-400 font-semibold uppercase tracking-wider">First due</label>
+                    <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-3)' }}>First due</p>
                     <input type="date" value={nextDue} onChange={e => setNextDue(e.target.value)}
-                      className="w-full mt-2 text-gray-700 outline-none bg-transparent text-sm font-medium border-b border-gray-100 pb-1"
+                      className="w-full outline-none bg-transparent text-sm font-medium" style={{ color: 'var(--text-1)', colorScheme: 'dark', borderBottom: '1px solid var(--border)', paddingBottom: 4 }}
                     />
                   </div>
                 </div>
 
-                {formError && <p className="text-red-500 text-sm font-medium">{formError}</p>}
+                {formError && <p className="text-red-400 text-sm">{formError}</p>}
 
                 <motion.button type="submit" whileTap={{ scale: 0.97 }}
-                  className="w-full py-3.5 rounded-2xl font-bold text-white"
-                  style={{ background: success ? '#10b981' : 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}
+                  className="w-full py-3.5 rounded-2xl font-bold text-white accent-glow"
+                  style={{ background: success ? 'var(--green)' : 'linear-gradient(135deg, var(--accent), #a78bfa)' }}
                 >
                   {success ? <span className="flex items-center justify-center gap-2"><CheckCircle2 size={16} /> Saved!</span> : 'Save'}
                 </motion.button>
@@ -135,43 +114,39 @@ export default function RecurringPage() {
           )}
         </AnimatePresence>
 
-        {/* List */}
-        <div className="px-5 flex flex-col gap-3">
-          {items.length === 0 ? (
-            <div className="bg-white rounded-3xl card-shadow p-10 text-center">
-              <RefreshCw size={32} className="mx-auto mb-3 text-gray-200" />
-              <p className="font-semibold text-gray-600">No recurring transactions</p>
-              <p className="text-gray-400 text-sm mt-1">Add rent, subscriptions, and anything that repeats automatically.</p>
-            </div>
-          ) : (
-            <div className="bg-white rounded-3xl card-shadow overflow-hidden">
-              <AnimatePresence>
-                {items.map((item, i) => (
-                  <motion.div key={item.id} layout
-                    initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: 40 }} transition={{ delay: i * 0.04 }}
-                    className="flex items-center gap-3 px-4 py-4 border-b border-gray-50 last:border-0"
-                  >
-                    <CategoryIcon id={item.category} size="md" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-800 truncate">{item.note || item.category}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {item.frequency.charAt(0).toUpperCase() + item.frequency.slice(1)} · next{' '}
-                        {new Date(item.next_due + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-gray-800">{formatCurrency(item.amount)}</p>
-                      <button onClick={() => handleDelete(item.id)} className="text-gray-300 hover:text-red-400 transition-colors mt-0.5 tap">
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-          )}
-        </div>
+        {items.length === 0 ? (
+          <div className="card p-10 text-center">
+            <RefreshCw size={28} className="mx-auto mb-3" style={{ color: 'var(--text-3)' }} />
+            <p className="font-semibold" style={{ color: 'var(--text-1)' }}>No recurring yet</p>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-3)' }}>Add rent, subscriptions, etc.</p>
+          </div>
+        ) : (
+          <div className="card overflow-hidden">
+            <AnimatePresence>
+              {items.map((item, i) => (
+                <motion.div key={item.id} layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: 40 }}
+                  transition={{ delay: i * 0.04 }}
+                  className="flex items-center gap-3 px-4 py-4" style={{ borderBottom: '1px solid var(--border)' }}
+                >
+                  <CategoryIcon id={item.category} size="md" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-1)' }}>{item.note || item.category}</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-3)' }}>
+                      {item.frequency.charAt(0).toUpperCase() + item.frequency.slice(1)} · next{' '}
+                      {new Date(item.next_due + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold" style={{ color: 'var(--text-1)' }}>{formatCurrency(item.amount)}</p>
+                    <button onClick={() => { deleteRecurring(item.id); refresh() }} className="mt-0.5 tap" style={{ color: 'var(--text-3)' }}>
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
 
         <Nav />
       </div>
