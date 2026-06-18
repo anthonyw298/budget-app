@@ -1,65 +1,145 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import { useEffect, useState, useCallback } from 'react'
+import { AnimatePresence } from 'framer-motion'
+import Nav from '@/components/Nav'
+import BudgetRing from '@/components/BudgetRing'
+import CategoryCard from '@/components/CategoryCard'
+import TransactionItem from '@/components/TransactionItem'
+import { CATEGORIES } from '@/lib/categories'
+import { getCurrentMonthYear, getMonthLabel } from '@/lib/utils'
+import {
+  getTransactions,
+  getBudgets,
+  processRecurring,
+  type Transaction,
+  type Budget,
+} from '@/lib/store'
+import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react'
+
+export default function Dashboard() {
+  const now = getCurrentMonthYear()
+  const [month, setMonth] = useState(now.month)
+  const [year, setYear] = useState(now.year)
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [budgets, setBudgets] = useState<Budget[]>([])
+  const [loaded, setLoaded] = useState(false)
+
+  const refresh = useCallback(() => {
+    setTransactions(getTransactions(month, year))
+    setBudgets(getBudgets(month, year))
+    setLoaded(true)
+  }, [month, year])
+
+  useEffect(() => {
+    processRecurring()
+    refresh()
+  }, [refresh])
+
+  const spentByCategory = CATEGORIES.reduce((acc, cat) => {
+    acc[cat.id] = transactions
+      .filter((t) => t.category === cat.id)
+      .reduce((s, t) => s + Number(t.amount), 0)
+    return acc
+  }, {} as Record<string, number>)
+
+  const getBudget = (catId: string) =>
+    budgets.find((b) => b.category === catId) ?? { allocated: 0, rollover: 0 }
+
+  const totalBudget = budgets.reduce((s, b) => s + Number(b.allocated) + Number(b.rollover), 0)
+  const totalSpent = transactions.reduce((s, t) => s + Number(t.amount), 0)
+
+  const isCurrentMonth = month === now.month && year === now.year
+
+  const prevMonth = () => {
+    if (month === 1) { setMonth(12); setYear((y) => y - 1) }
+    else setMonth((m) => m - 1)
+  }
+  const nextMonth = () => {
+    if (isCurrentMonth) return
+    if (month === 12) { setMonth(1); setYear((y) => y + 1) }
+    else setMonth((m) => m + 1)
+  }
+
+  const activeBudgets = CATEGORIES.filter(
+    (cat) => getBudget(cat.id).allocated > 0 || spentByCategory[cat.id] > 0
+  )
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="pb-28" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+      <div className="px-5 pt-6 pb-4">
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="text-2xl font-bold text-gray-900">Overview</h1>
+          <div className="w-9 h-9 rounded-full bg-violet-100 flex items-center justify-center">
+            <Sparkles size={18} className="text-violet-600" />
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="flex items-center gap-3 mt-3">
+          <button onClick={prevMonth} className="p-1.5 rounded-xl bg-white shadow-sm border border-gray-100 active:scale-95 transition-transform">
+            <ChevronLeft size={18} className="text-gray-500" />
+          </button>
+          <span className="flex-1 text-center font-semibold text-gray-700">
+            {getMonthLabel(month, year)}
+          </span>
+          <button onClick={nextMonth} disabled={isCurrentMonth} className="p-1.5 rounded-xl bg-white shadow-sm border border-gray-100 disabled:opacity-30 active:scale-95 transition-transform">
+            <ChevronRight size={18} className="text-gray-500" />
+          </button>
         </div>
-      </main>
+      </div>
+
+      <div className="mx-5 bg-white rounded-3xl shadow-sm border border-gray-100 p-6 flex justify-center">
+        {!loaded ? (
+          <div className="w-44 h-44 rounded-full bg-gray-100 animate-pulse" />
+        ) : (
+          <BudgetRing spent={totalSpent} total={totalBudget} size={180} />
+        )}
+      </div>
+
+      {loaded && activeBudgets.length > 0 && (
+        <div className="px-5 mt-5">
+          <h2 className="font-bold text-gray-800 mb-3">Categories</h2>
+          <div className="flex flex-col gap-3">
+            <AnimatePresence>
+              {activeBudgets.map((cat) => {
+                const budget = getBudget(cat.id)
+                return (
+                  <CategoryCard
+                    key={cat.id}
+                    category={cat.id}
+                    allocated={Number(budget.allocated)}
+                    rollover={Number(budget.rollover)}
+                    spent={spentByCategory[cat.id] ?? 0}
+                  />
+                )
+              })}
+            </AnimatePresence>
+          </div>
+        </div>
+      )}
+
+      {loaded && transactions.length > 0 && (
+        <div className="px-5 mt-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold text-gray-800">Recent</h2>
+            <a href="/history" className="text-sm text-violet-600 font-medium">See all</a>
+          </div>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4">
+            {transactions.slice(0, 5).map((t) => (
+              <TransactionItem key={t.id} transaction={t} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {loaded && activeBudgets.length === 0 && transactions.length === 0 && (
+        <div className="flex flex-col items-center justify-center mt-16 px-8 text-center">
+          <div className="text-6xl mb-4">💜</div>
+          <p className="text-gray-600 font-medium">No data yet for this month</p>
+          <p className="text-gray-400 text-sm mt-1">Set budgets in the Budget tab, then start logging expenses!</p>
+        </div>
+      )}
+
+      <Nav />
     </div>
-  );
+  )
 }
